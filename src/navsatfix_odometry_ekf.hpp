@@ -3,6 +3,9 @@
 
 #include <fstream>
 #include <nav_msgs/Odometry.h>
+#include <sensor_msgs/NavSatFix.h>
+
+#include "lla.hpp"
 
 class NavsatfixOdometryEKF {
 public:
@@ -10,9 +13,11 @@ public:
 
     void run();
 private:
-    void subCallback(const nav_msgs::Odometry::ConstPtr&);
+    void subCallbackOdom(const nav_msgs::Odometry::ConstPtr&);
+    void subCallbackNavsatfix(const sensor_msgs::NavSatFix::ConstPtr&);
 
-    std::ofstream odom_file_;
+    std::ofstream odom_file_, navsatfix_file_;
+    LLA initial_lla_;
 };
 
 #endif
