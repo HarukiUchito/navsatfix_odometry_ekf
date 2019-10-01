@@ -1,6 +1,7 @@
 #ifndef UTILITY_HPP
 #define UTILITY_HPP
 
+#include <ros/ros.h>
 #include <geometry_msgs/Point.h>
 
 #define ros_exception(message)                             \
@@ -30,5 +31,21 @@ geometry_msgs::Point GetPointMsg(const double x, const double y, const double z)
 geometry_msgs::Point GetPointMsg(const Point&);
 
 double deg2rad(double degrees);
+
+std::string to_string(const std::string& value);
+template<typename T>
+T getParamFromRosParam(const ros::NodeHandle& nh, std::string name) 
+{
+    T param;
+    if (nh.getParam(name, param))
+    {
+        using namespace std;
+        std::string sparam {to_string(param)};
+        ROS_INFO("%s: %s", name.c_str(), sparam.c_str());
+    }
+    else
+        ros_exception(name + " is not specified on rosparam");
+    return param;
+}
 
 #endif

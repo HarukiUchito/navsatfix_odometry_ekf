@@ -27,3 +27,8 @@ geometry_msgs::Point GetPointMsg(const Point& p)
 double deg2rad(double degrees) {
     return degrees * 4.0 * atan (1.0) / 180.0;
 }
+
+std::string to_string(const std::string& value)
+{
+    return value;
+}
