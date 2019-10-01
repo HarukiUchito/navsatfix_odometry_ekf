@@ -5,6 +5,8 @@
 #include <typeinfo>
 
 #include <ros/ros.h>
+#include <geometry_msgs/Point.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 std::string to_string(const std::string& value)
 {
@@ -45,6 +47,7 @@ NavsatfixOdometryEKF::NavsatfixOdometryEKF()
     double alt {getParamFromRosParam<double>(nh, "gnss_ini_alt")};
 
     initial_lla_ = LLA {lat, lon, alt};
+    recent_lla_ = initial_lla_;
 }
 
 void NavsatfixOdometryEKF::run()
@@ -57,8 +60,13 @@ void NavsatfixOdometryEKF::run()
     ros::Subscriber sub_odom = nh.subscribe(odom_topic, 1, &NavsatfixOdometryEKF::subCallbackOdom, this);
     ros::Subscriber sub_navsatfix = nh.subscribe(navsatfix_topic, 1, &NavsatfixOdometryEKF::subCallbackNavsatfix, this);
 
+    tf2_ros::Buffer tf_buffer;
+    tf2_ros::TransformListener tf_listener(tf_buffer); // listening starts
+
     ros::Rate rate {10};
     while (ros::ok()) {
+
+        dumpMeasurements(tf_buffer);
 
         ros::spinOnce();
         rate.sleep();
@@ -67,21 +75,45 @@ void NavsatfixOdometryEKF::run()
 
 void NavsatfixOdometryEKF::subCallbackOdom(const nav_msgs::Odometry::ConstPtr& odom)
 {
-    double x {odom->pose.pose.position.x};
-    double y {odom->pose.pose.position.y};
-
-    odom_file_ << x << " " << y << std::endl;
-
-    ROS_INFO("%f, %f is wrote", x, y);
+    recent_odom_xy_ = GetPointMsg(odom->pose.pose.position.x, odom->pose.pose.position.y, 0.0);
 }
 
 void NavsatfixOdometryEKF::subCallbackNavsatfix(const sensor_msgs::NavSatFix::ConstPtr& navsatfix)
 {
     sensor_msgs::NavSatFix cp = *navsatfix;
-    LLA current_lla {cp};
+    recent_lla_ = LLA {cp};
+}
 
-    geometry_msgs::Point pos = CalcRelativePosition(initial_lla_, current_lla);
-    ROS_INFO("new point lat: %f, lon: %f -> x: %f, y: %f", cp.latitude, cp.longitude, pos.x, pos.y);
-    
-    navsatfix_file_ << pos.x << " " << pos.y << std::endl;
+geometry_msgs::Point NavsatfixOdometryEKF::transformLLAtoOdomFrame(tf2_ros::Buffer& tf_buf, const LLA& lla) const
+{
+    // lla -> enu
+    geometry_msgs::Point pos = CalcRelativePosition(initial_lla_, recent_lla_);
+
+    // enu -> odom
+    while (true)
+    {
+        try
+        {
+            geometry_msgs::TransformStamped transformStamped = tf_buf.lookupTransform("odom_with_imu", "gps", ros::Time(0));
+            geometry_msgs::Point ret;
+            tf2::doTransform(pos, ret, transformStamped);
+            return pos;//ret;
+        }
+        catch(const tf2::TransformException &e)
+        {
+            std::cout << e.what() << std::endl;
+            continue;
+        }
+    }
+}
+
+void NavsatfixOdometryEKF::dumpMeasurements(tf2_ros::Buffer& tf_buf)
+{
+    double x {recent_odom_xy_.x};
+    double y {recent_odom_xy_.y};
+    odom_file_ << x << " " << y << std::endl;
+    ROS_INFO("%f, %f is wrote", x, y);
+
+    geometry_msgs::Point gnss_xy_in_odom = transformLLAtoOdomFrame(tf_buf, recent_lla_);
+    navsatfix_file_ << gnss_xy_in_odom.x << " " << gnss_xy_in_odom.y << std::endl;
 }
