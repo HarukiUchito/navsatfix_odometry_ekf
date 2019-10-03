@@ -65,6 +65,9 @@
   <build_export_depend>tf2_geometry_msgs</build_export_depend>
   <exec_depend>tf2_geometry_msgs</exec_depend>
 
+  <build_depend>imu_3dm_gx4</build_depend>
+  <build_export_depend>imu_3dm_gx4</build_export_depend>
+  <exec_depend>imu_3dm_gx4</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

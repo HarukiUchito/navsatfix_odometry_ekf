@@ -37,13 +37,15 @@ NavsatfixOdometryEKF::NavsatfixOdometryEKF()
 
 void NavsatfixOdometryEKF::run()
 {
-    ros::NodeHandle nhp{"~"};
-    std::string odom_topic{getParamFromRosParam<std::string>(nhp, "odom_topic")};
-    std::string navsatfix_topic{getParamFromRosParam<std::string>(nhp, "navsatfix_topic")};
+    ros::NodeHandle nhp {"~"};
+    std::string odom_topic {getParamFromRosParam<std::string>(nhp, "odom_topic")};
+    std::string navsatfix_topic {getParamFromRosParam<std::string>(nhp, "navsatfix_topic")};
+    std::string imu_topic {getParamFromRosParam<std::string>(nhp, "imu_topic")};
 
     ros::NodeHandle nh;
     ros::Subscriber sub_odom = nh.subscribe(odom_topic, 1, &NavsatfixOdometryEKF::subCallbackOdom, this);
     ros::Subscriber sub_navsatfix = nh.subscribe(navsatfix_topic, 1, &NavsatfixOdometryEKF::subCallbackNavsatfix, this);
+    ros::Subscriber sub_imu = nh.subscribe(imu_topic, 1, &NavsatfixOdometryEKF::subCallbackImu, this);
 
     tf2_ros::TransformListener tf_listener(tf_buffer_); // listening starts
 
@@ -62,7 +64,7 @@ void NavsatfixOdometryEKF::subCallbackOdom(const nav_msgs::Odometry::ConstPtr &o
 {
     if (got_first_odom_)
     {
-        ros::Time recent = recent_odom.header.stamp;;
+        ros::Time recent = recent_odom_.header.stamp;;
         ros::Time current = odom->header.stamp;
         double delta = (current - recent).toSec();
         double odom_v = odom->twist.twist.linear.x;
@@ -72,19 +74,33 @@ void NavsatfixOdometryEKF::subCallbackOdom(const nav_msgs::Odometry::ConstPtr &o
     else
     {
         got_first_odom_ = true;
-        ekf_.setTheta(tf2::getYaw(odom->pose.pose.orientation));
+        initial_yaw_ = tf2::getYaw(odom->pose.pose.orientation);
+        ekf_.setTheta(initial_yaw_);
     }
-    recent_odom = *odom;
+    recent_odom_ = *odom;
 }
 
 void NavsatfixOdometryEKF::subCallbackNavsatfix(const sensor_msgs::NavSatFix::ConstPtr &navsatfix)
 {
     sensor_msgs::NavSatFix cp = *navsatfix;
     recent_lla_ = LLA{cp};
-
     recent_gnss_xy = transformLLAtoOdomFrame(recent_lla_);
 
-    ekf_.correct(recent_gnss_xy.x, recent_gnss_xy.y);
+    double roll, pitch, yaw;
+    tf2::Quaternion q = recent_orientation_ - initial_orientation_;
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+    ekf_.correct(recent_gnss_xy.x, recent_gnss_xy.y, initial_yaw_ + yaw);
+}
+
+void NavsatfixOdometryEKF::subCallbackImu(const imu_3dm_gx4::FilterOutput::ConstPtr &imu)
+{
+    if (not got_first_imu_)
+    {
+        got_first_imu_ = true;
+        tf2::fromMsg(imu->orientation, initial_orientation_);
+    }
+    tf2::fromMsg(imu->orientation, recent_orientation_);
 }
 
 geometry_msgs::Point NavsatfixOdometryEKF::transformLLAtoOdomFrame(const LLA &lla) const
@@ -112,8 +128,8 @@ geometry_msgs::Point NavsatfixOdometryEKF::transformLLAtoOdomFrame(const LLA &ll
 
 void NavsatfixOdometryEKF::dumpMeasurements()
 {
-    double x {recent_odom.pose.pose.position.x};
-    double y {recent_odom.pose.pose.position.y};
+    double x {recent_odom_.pose.pose.position.x};
+    double y {recent_odom_.pose.pose.position.y};
     odom_file_ << x << " " << y << std::endl;
     ROS_INFO("%f, %f is wrote", x, y);
 

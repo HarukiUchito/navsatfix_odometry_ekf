@@ -1,4 +1,5 @@
 #include "wheelOdom_gnss_ekf.hpp"
+#include <iostream>
 
 WheelOdomGNSSEKF::WheelOdomGNSSEKF()
 {
@@ -15,12 +16,14 @@ WheelOdomGNSSEKF::WheelOdomGNSSEKF()
         0.0, 0.0, 0.1;
 
     measurement_noise_covariance <<
-        1.0, 0.0,
-        0.0, 1.0;
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0001;
     
     matH_ <<
         1, 0, 0,
-        0, 1, 0;
+        0, 1, 0,
+        0, 0, 1;
 }
 
 void WheelOdomGNSSEKF::predict(double odom_v, double odom_omega, double delta)
@@ -43,15 +46,15 @@ void WheelOdomGNSSEKF::predict(double odom_v, double odom_omega, double delta)
         process_noise_covariance;
 }
 
-void WheelOdomGNSSEKF::correct(double gnss_x, double gnss_y)
+void WheelOdomGNSSEKF::correct(double gnss_x, double gnss_y, double yaw)
 {
     double dx = gnss_x - x(), dy = gnss_y - y();
     double distance = sqrt(dx * dx + dy * dy);
-    if (distance >= 7.0)
+    if (distance >= 3.0)
         return;
 
     Eigen::MatrixXd measurement_residual = 
-        Eigen::Vector2d {gnss_x, gnss_y} - matH_ * current_state_;
+        Eigen::Vector3d {gnss_x, gnss_y, yaw} - matH_ * current_state_;
     
     Eigen::MatrixXd measurement_residual_covariance =
         matH_ * current_covariance_ * matH_.transpose() +
@@ -60,7 +63,18 @@ void WheelOdomGNSSEKF::correct(double gnss_x, double gnss_y)
     Eigen::MatrixXd kalman_gain =
         current_covariance_ * matH_.transpose() * measurement_residual_covariance.inverse();
     
+    double before = current_state_(2);
     current_state_ += kalman_gain * measurement_residual;
+    current_state_ += Eigen::Vector3d {1e-8, 1e-8, 1e-8};
+    double diff = current_state_(2) - before;
+
+    if (diff > M_PI)
+    {
+        std::cout << "\nyaw" << std::endl;
+        std::cout << "before: " << std::endl << before << std::endl;
+        std::cout << "after: " << std::endl << current_state_(2) << std::endl;
+        std::cout << "diff: " << diff << std::endl;
+    }
 
     current_covariance_ =
         (Eigen::Matrix3d::Identity() - kalman_gain * matH_) * current_covariance_;

@@ -8,7 +8,7 @@ public:
     WheelOdomGNSSEKF();
 
     void predict(double odom_v, double odom_omega, double delta);
-    void correct(double gnss_x, double gnss_y);
+    void correct(double gnss_x, double gnss_y, double yaw);
 
     double setTheta(double th) { current_state_(2) = th; }
     double x() const { return current_state_.x(); }
@@ -19,8 +19,8 @@ private:
     Eigen::Matrix3d current_covariance_;
 
     Eigen::Matrix3d process_noise_covariance;
-    Eigen::Matrix2d measurement_noise_covariance;
-    Eigen::Matrix<double, 2, 3> matH_;
+    Eigen::Matrix3d measurement_noise_covariance;
+    Eigen::Matrix<double, 3, 3> matH_;
 };
 
 #endif
