@@ -9,6 +9,7 @@
 #include <geometry_msgs/Point.h>
 
 #include "lla.hpp"
+#include "wheelOdom_gnss_ekf.hpp"
 
 class NavsatfixOdometryEKF {
 public:
@@ -16,18 +17,23 @@ public:
 
     void run();
 private:
+    tf2_ros::Buffer tf_buffer_;
     void subCallbackOdom(const nav_msgs::Odometry::ConstPtr&);
     void subCallbackNavsatfix(const sensor_msgs::NavSatFix::ConstPtr&);
 
-    void dumpMeasurements(tf2_ros::Buffer&);
+    void dumpMeasurements();
 
-    std::ofstream odom_file_, navsatfix_file_;
+    std::ofstream odom_file_, navsatfix_file_, ekf_file_;
     LLA initial_lla_; // is used to calculate relative position from recent lla measurement
     LLA recent_lla_;
+    geometry_msgs::Point recent_gnss_xy;
     
-    geometry_msgs::Point transformLLAtoOdomFrame(tf2_ros::Buffer&, const LLA&) const;
+    geometry_msgs::Point transformLLAtoOdomFrame(const LLA&) const;
 
-    geometry_msgs::Point recent_odom_xy_;
+    bool got_first_odom_ {false};
+    nav_msgs::Odometry recent_odom;
+
+    WheelOdomGNSSEKF ekf_;
 };
 
 #endif
