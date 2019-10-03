@@ -1,0 +1,8 @@
+
+odom_topic: /odometry/filtered_with_imu
+imu_topic: /imu/filter
+navsatfix_topic: /navsatfix_rtklib
+
+dump_file_path_odom: /home/uchiito-h/catkin_ws/src/navsatfix_odometry_ekf/dump/odom_measurements.txt
+dump_file_path_navsatfix: /home/uchiito-h/catkin_ws/src/navsatfix_odometry_ekf/dump/navsatfix_measurements.txt
+dump_file_path_ekf: /home/uchiito-h/catkin_ws/src/navsatfix_odometry_ekf/dump/ekf.txt
