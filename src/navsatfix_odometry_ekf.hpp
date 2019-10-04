@@ -26,12 +26,12 @@ private:
     std::ofstream odom_file_, navsatfix_file_, ekf_file_;
     LLA initial_lla_; // is used to calculate relative position from recent lla measurement
     LLA recent_lla_;
-    geometry_msgs::Point recent_gnss_xy;
+    geometry_msgs::Point recent_gnss_xy_;
     
     geometry_msgs::Point transformLLAtoOdomFrame(const LLA&) const;
 
     bool got_first_odom_ {false};
-    nav_msgs::Odometry recent_odom;
+    nav_msgs::Odometry recent_odom_;
 
     WheelOdomGNSSEKF ekf_;
 };

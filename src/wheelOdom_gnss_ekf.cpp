@@ -9,12 +9,12 @@ WheelOdomGNSSEKF::WheelOdomGNSSEKF()
         0.00, 0.001, 0.00,
         0.00, 0.00, 0.001;
     
-    process_noise_covariance <<
+    process_noise_covariance_ <<
         0.01, 0.0, 0.0,
         0.0, 0.01, 0.0,
         0.0, 0.0, 0.1;
 
-    measurement_noise_covariance <<
+    measurement_noise_covariance_ <<
         1.0, 0.0,
         0.0, 1.0;
     
@@ -40,7 +40,7 @@ void WheelOdomGNSSEKF::predict(double odom_v, double odom_omega, double delta)
 
     current_covariance_ =
         jacobian * current_covariance_ * jacobian.transpose() +
-        process_noise_covariance;
+        process_noise_covariance_;
 }
 
 void WheelOdomGNSSEKF::correct(double gnss_x, double gnss_y)
@@ -55,7 +55,7 @@ void WheelOdomGNSSEKF::correct(double gnss_x, double gnss_y)
     
     Eigen::MatrixXd measurement_residual_covariance =
         matH_ * current_covariance_ * matH_.transpose() +
-        measurement_noise_covariance;
+        measurement_noise_covariance_;
 
     Eigen::MatrixXd kalman_gain =
         current_covariance_ * matH_.transpose() * measurement_residual_covariance.inverse();

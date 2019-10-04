@@ -62,7 +62,7 @@ void NavsatfixOdometryEKF::subCallbackOdom(const nav_msgs::Odometry::ConstPtr &o
 {
     if (got_first_odom_)
     {
-        ros::Time recent = recent_odom.header.stamp;;
+        ros::Time recent = recent_odom_.header.stamp;;
         ros::Time current = odom->header.stamp;
         double delta = (current - recent).toSec();
         double odom_v = odom->twist.twist.linear.x;
@@ -74,7 +74,7 @@ void NavsatfixOdometryEKF::subCallbackOdom(const nav_msgs::Odometry::ConstPtr &o
         got_first_odom_ = true;
         ekf_.setTheta(tf2::getYaw(odom->pose.pose.orientation));
     }
-    recent_odom = *odom;
+    recent_odom_ = *odom;
 }
 
 void NavsatfixOdometryEKF::subCallbackNavsatfix(const sensor_msgs::NavSatFix::ConstPtr &navsatfix)
@@ -82,9 +82,9 @@ void NavsatfixOdometryEKF::subCallbackNavsatfix(const sensor_msgs::NavSatFix::Co
     sensor_msgs::NavSatFix cp = *navsatfix;
     recent_lla_ = LLA{cp};
 
-    recent_gnss_xy = transformLLAtoOdomFrame(recent_lla_);
+    recent_gnss_xy_ = transformLLAtoOdomFrame(recent_lla_);
 
-    ekf_.correct(recent_gnss_xy.x, recent_gnss_xy.y);
+    ekf_.correct(recent_gnss_xy_.x, recent_gnss_xy_.y);
 }
 
 geometry_msgs::Point NavsatfixOdometryEKF::transformLLAtoOdomFrame(const LLA &lla) const
@@ -112,12 +112,12 @@ geometry_msgs::Point NavsatfixOdometryEKF::transformLLAtoOdomFrame(const LLA &ll
 
 void NavsatfixOdometryEKF::dumpMeasurements()
 {
-    double x {recent_odom.pose.pose.position.x};
-    double y {recent_odom.pose.pose.position.y};
+    double x {recent_odom_.pose.pose.position.x};
+    double y {recent_odom_.pose.pose.position.y};
     odom_file_ << x << " " << y << std::endl;
     ROS_INFO("%f, %f is wrote", x, y);
 
-    navsatfix_file_ << recent_gnss_xy.x << " " << recent_gnss_xy.y << std::endl;
+    navsatfix_file_ << recent_gnss_xy_.x << " " << recent_gnss_xy_.y << std::endl;
 
     ekf_file_ << ekf_.x() << " " << ekf_.y() << " " << ekf_.theta() << std::endl;
 }

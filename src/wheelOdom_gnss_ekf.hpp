@@ -18,8 +18,8 @@ private:
     Eigen::Vector3d current_state_;
     Eigen::Matrix3d current_covariance_;
 
-    Eigen::Matrix3d process_noise_covariance;
-    Eigen::Matrix2d measurement_noise_covariance;
+    Eigen::Matrix3d process_noise_covariance_;
+    Eigen::Matrix2d measurement_noise_covariance_;
     Eigen::Matrix<double, 2, 3> matH_;
 };
 
