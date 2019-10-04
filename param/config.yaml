@@ -6,3 +6,20 @@ navsatfix_topic: /navsatfix_rtklib
 dump_file_path_odom: /home/uchiito-h/catkin_ws/src/navsatfix_odometry_ekf/dump/odom_measurements.txt
 dump_file_path_navsatfix: /home/uchiito-h/catkin_ws/src/navsatfix_odometry_ekf/dump/navsatfix_measurements.txt
 dump_file_path_ekf: /home/uchiito-h/catkin_ws/src/navsatfix_odometry_ekf/dump/ekf.txt
+
+initial_covariance: [
+  0.001, 0.000, 0.000,
+  0.000, 0.001, 0.000,
+  0.000, 0.000, 0.001
+]
+
+process_noise_covariance: [
+  0.01, 0.00, 0.00,
+  0.00, 0.01, 0.00,
+  0.00, 0.00, 0.01
+]
+
+measurement_noise_covariance: [
+  1.0, 0.0,
+  0.0, 1.0
+]

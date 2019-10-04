@@ -32,3 +32,15 @@ std::string to_string(const std::string& value)
 {
     return value;
 }
+
+std::vector<double> getDoubleVectorParam(const ros::NodeHandle& nh, std::string name)
+{
+    if (not nh.hasParam(name))
+    {
+        std::string txt = "param " + name + " is not set";
+        ros_exception(txt.c_str());
+    }
+    std::vector<double> ret;
+    nh.getParam(name, ret);
+    return ret;
+}

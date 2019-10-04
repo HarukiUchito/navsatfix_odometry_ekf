@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <fstream>
+#include <vector>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <tf2_ros/transform_listener.h>

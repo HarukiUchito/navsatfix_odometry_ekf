@@ -1,30 +1,51 @@
 #include "wheelOdom_gnss_ekf.hpp"
+#include <iostream>
 
 WheelOdomGNSSEKF::WheelOdomGNSSEKF()
 {
     current_state_.setZero();
 
-    current_covariance_ <<
-        0.001, 0.00, 0.00,
-        0.00, 0.001, 0.00,
-        0.00, 0.00, 0.001;
-    
-    process_noise_covariance_ <<
-        0.01, 0.0, 0.0,
-        0.0, 0.01, 0.0,
-        0.0, 0.0, 0.1;
-
-    measurement_noise_covariance_ <<
-        1.0, 0.0,
-        0.0, 1.0;
-    
+    // relation between state and measurement
     matH_ <<
         1, 0, 0,
         0, 1, 0;
 }
 
+void WheelOdomGNSSEKF::set_covariances(
+    const std::vector<double> &initial_covariance,
+    const std::vector<double> &process_noise_covariance,
+    const std::vector<double> &measurement_noise_covariance
+)
+{
+    if (initial_covariance.size() != 9 or
+        process_noise_covariance.size() != 9 or
+        measurement_noise_covariance.size() != 4)
+    {
+        throw std::runtime_error("Covariance size is wrong");
+    }
+
+    auto copy = [](int n, const std::vector<double> &from, auto &to)
+    {
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < n; ++j)
+                to(i, j) = from[n * i + j];
+    };
+
+    copy(3, initial_covariance, current_covariance_);
+    copy(3, process_noise_covariance, process_noise_covariance_);
+    copy(2, measurement_noise_covariance, measurement_noise_covariance_);
+    std::cout << "initial_covariance:" << std::endl << current_covariance_ << std::endl;
+    std::cout << "process_noise_covariance:" << std::endl << process_noise_covariance_ << std::endl;
+    std::cout << "measurement_noise_covariance:" << std::endl << measurement_noise_covariance_ << std::endl;
+
+    covariances_set_ = true;
+}
+
 void WheelOdomGNSSEKF::predict(double odom_v, double odom_omega, double delta)
 {
+    if (not covariances_set_)
+        throw std::runtime_error("Covariances are not set");
+
     double yaw = current_state_.z() + odom_omega * delta;
     current_state_ += Eigen::Vector3d {
         odom_v * cos(yaw) * delta,
@@ -45,9 +66,12 @@ void WheelOdomGNSSEKF::predict(double odom_v, double odom_omega, double delta)
 
 void WheelOdomGNSSEKF::correct(double gnss_x, double gnss_y)
 {
+    if (not covariances_set_)
+        throw std::runtime_error("Covariances are not set");
+
     double dx = gnss_x - x(), dy = gnss_y - y();
     double distance = sqrt(dx * dx + dy * dy);
-    if (distance >= 7.0)
+    if (distance >= 3.0)
         return;
 
     Eigen::MatrixXd measurement_residual = 

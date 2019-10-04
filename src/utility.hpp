@@ -48,4 +48,6 @@ T getParamFromRosParam(const ros::NodeHandle& nh, std::string name)
     return param;
 }
 
+std::vector<double> getDoubleVectorParam(const ros::NodeHandle& nh, std::string name);
+
 #endif
