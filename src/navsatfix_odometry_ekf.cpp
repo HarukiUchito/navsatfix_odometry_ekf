@@ -111,13 +111,21 @@ void NavsatfixOdometryEKF::subCallbackOdom(const nav_msgs::Odometry::ConstPtr &o
     recent_odom_ = *odom;
 }
 
+enum SolutionStatus {
+	FIX,
+	FLOAT,
+	DGNSS,
+	SINGLE,
+};
+
 void NavsatfixOdometryEKF::subCallbackNavsatfix(const sensor_msgs::NavSatFix::ConstPtr &navsatfix)
 {
     recent_lla_ = LLA {*navsatfix};
 
     recent_gnss_xy_ = transformLLAtoOdomFrame(recent_lla_);
 
-    ekf_.correct(recent_gnss_xy_.x, recent_gnss_xy_.y);
+    if (navsatfix->status.status == SolutionStatus::FIX or navsatfix->status.status == SolutionStatus::DGNSS)
+        ekf_.correct(recent_gnss_xy_.x, recent_gnss_xy_.y);
 }
 
 geometry_msgs::Point NavsatfixOdometryEKF::transformLLAtoOdomFrame(const LLA &lla) const

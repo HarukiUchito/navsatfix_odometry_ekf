@@ -71,7 +71,7 @@ void WheelOdomGNSSEKF::correct(double gnss_x, double gnss_y)
 
     double dx = gnss_x - x(), dy = gnss_y - y();
     double distance = sqrt(dx * dx + dy * dy);
-    if (distance >= 3.0)
+    if (distance >= 1.0)
         return;
 
     Eigen::MatrixXd measurement_residual = 
