@@ -29,6 +29,10 @@ public:
     double x() const { return current_state_.x(); }
     double y() const { return current_state_.y(); }
     double theta() const { return current_state_.z(); };
+    double getCurrentCovariance(int i, int j) const
+    {
+        return current_covariance_(i, j);
+    }
 private:
     Eigen::Vector3d current_state_;
     Eigen::Matrix3d current_covariance_;

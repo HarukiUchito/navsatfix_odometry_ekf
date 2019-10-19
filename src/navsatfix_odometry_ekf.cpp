@@ -12,6 +12,8 @@
 NavsatfixOdometryEKF::NavsatfixOdometryEKF()
 {
     ros::NodeHandle nhp{"~"};
+    map_frame_id_ = getParamFromRosParam<std::string>(nhp, "map_frame_id");
+    gps_frame_id_ = getParamFromRosParam<std::string>(nhp, "gps_frame_id");
 
     odom_file_.open(getParamFromRosParam<std::string>(nhp, "dump_file_path_odom"));
     if (not odom_file_.is_open())
@@ -49,16 +51,45 @@ void NavsatfixOdometryEKF::run()
     ros::Subscriber sub_odom {nh.subscribe(odom_topic, 1, &NavsatfixOdometryEKF::subCallbackOdom, this)};
     ros::Subscriber sub_navsatfix {nh.subscribe(navsatfix_topic, 1, &NavsatfixOdometryEKF::subCallbackNavsatfix, this)};
 
+    std::string filtered_topic {"/NavsatfixOdometryEKF/odometry"};
+    ros::Publisher pub_filtered {nh.advertise<nav_msgs::Odometry>(filtered_topic, 1)};
+
     tf2_ros::TransformListener tf_listener {tf_buffer_}; // listening starts
 
     ros::Rate rate {10};
     while (ros::ok())
     {
-        dumpMeasurements();
+        pub_filtered.publish(createFilteredOdometryMsg());
+        //dumpMeasurements();
 
         ros::spinOnce();
         rate.sleep();
     }
+}
+
+nav_msgs::Odometry NavsatfixOdometryEKF::createFilteredOdometryMsg() const
+{
+    nav_msgs::Odometry odom {recent_odom_};
+    odom.header.frame_id = map_frame_id_;
+    odom.header.stamp = ros::Time::now();
+    odom.pose.pose.position.x = ekf_.x();
+    odom.pose.pose.position.y = ekf_.y();
+    tf2::Quaternion q;
+    q.setRPY(0, 0, ekf_.theta());
+    odom.pose.pose.orientation = tf2::toMsg(q);
+
+    for (int i = 0; i < 3; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            int idx_i = i, idx_j = j;
+            if (i == 2) idx_i += 3;
+            if (j == 2) idx_j += 3;
+            odom.pose.covariance[idx_i * 6 + idx_j] = ekf_.getCurrentCovariance(i, j);
+        }
+    }
+
+    return odom;
 }
 
 void NavsatfixOdometryEKF::subCallbackOdom(const nav_msgs::Odometry::ConstPtr &odom)
@@ -99,7 +130,7 @@ geometry_msgs::Point NavsatfixOdometryEKF::transformLLAtoOdomFrame(const LLA &ll
     {
         try
         {
-            geometry_msgs::TransformStamped transformStamped {tf_buffer_.lookupTransform("odom_with_imu", "gps", ros::Time(0))};
+            geometry_msgs::TransformStamped transformStamped {tf_buffer_.lookupTransform(map_frame_id_, gps_frame_id_, ros::Time(0))};
             geometry_msgs::Point ret;
             tf2::doTransform(pos, ret, transformStamped);
             return ret;

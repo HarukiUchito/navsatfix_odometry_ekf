@@ -1,4 +1,5 @@
-
+map_frame_id: map
+gps_frame_id: gps
 odom_topic: /odometry/filtered_with_imu
 imu_topic: /imu/filter
 navsatfix_topic: /navsatfix_rtklib
@@ -14,9 +15,9 @@ initial_covariance: [
 ]
 
 process_noise_covariance: [
-  0.01, 0.00, 0.00,
-  0.00, 0.01, 0.00,
-  0.00, 0.00, 0.01
+  0.00001, 0.00000, 0.0000,
+  0.00000, 0.00001, 0.0000,
+  0.00000, 0.00000, 0.00003
 ]
 
 measurement_noise_covariance: [

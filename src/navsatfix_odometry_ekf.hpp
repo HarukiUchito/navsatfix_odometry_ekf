@@ -22,7 +22,12 @@ private:
     void subCallbackOdom(const nav_msgs::Odometry::ConstPtr&);
     void subCallbackNavsatfix(const sensor_msgs::NavSatFix::ConstPtr&);
 
+    nav_msgs::Odometry createFilteredOdometryMsg() const;
+
     void dumpMeasurements();
+
+    std::string map_frame_id_ {"map"};
+    std::string gps_frame_id_ {"gps"};
 
     std::ofstream odom_file_, navsatfix_file_, ekf_file_;
     LLA initial_lla_; // is used to calculate relative position from recent lla measurement
