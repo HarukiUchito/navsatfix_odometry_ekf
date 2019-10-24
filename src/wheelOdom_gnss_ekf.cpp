@@ -41,6 +41,19 @@ void WheelOdomGNSSEKF::set_covariances(
     covariances_set_ = true;
 }
 
+double WheelOdomGNSSEKF::mahalanobisDistance(double gnss_x, double gnss_y) const
+{
+    Eigen::Matrix2d p; p <<
+        current_covariance_(0, 0), current_covariance_(0, 1),
+        current_covariance_(1, 0), current_covariance_(1, 1);
+
+    Eigen::Vector2d xd;
+    xd << x() - gnss_x, y() - gnss_y;
+
+    double ret = sqrt(xd.transpose() * p.inverse() * xd);
+    return ret;
+}
+
 void WheelOdomGNSSEKF::predict(double odom_v, double odom_omega, double delta)
 {
     if (not covariances_set_)
@@ -69,9 +82,7 @@ void WheelOdomGNSSEKF::correct(double gnss_x, double gnss_y)
     if (not covariances_set_)
         throw std::runtime_error("Covariances are not set");
 
-    double dx = gnss_x - x(), dy = gnss_y - y();
-    double distance = sqrt(dx * dx + dy * dy);
-    if (distance >= 1.0)
+    if (mahalanobisDistance(gnss_x, gnss_y) >= 1.0)
         return;
 
     Eigen::MatrixXd measurement_residual = 

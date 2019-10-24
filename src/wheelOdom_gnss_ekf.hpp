@@ -22,6 +22,8 @@ public:
         const std::vector<double> &measurement_noise_covariance // 2x2
     );
 
+    double mahalanobisDistance(double gnss_x, double gnss_y) const;
+
     void predict(double odom_v, double odom_omega, double delta);
     void correct(double gnss_x, double gnss_y);
 
